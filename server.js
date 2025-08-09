@@ -1,12 +1,12 @@
-import express from "express";
-import fetch from "node-fetch";
+import express from 'express';
+import fetch from 'node-fetch';
 
 const app = express();
 
-app.get("/book", async (req, res) => {
+app.get('/book', async (req, res) => {
   const uuid = req.query.uuid;
   if (!uuid) {
-    return res.status(400).json({ error: "Missing book uuid" });
+    return res.status(400).json({ error: 'Missing book uuid' });
   }
 
   try {
@@ -22,14 +22,14 @@ app.get("/book", async (req, res) => {
     if (!response.ok) {
       return res
         .status(response.status)
-        .json({ error: "Failed to fetch book from Bookmate" });
+        .json({ error: 'Failed to fetch book from Bookmate' });
     }
 
     const buffer = await response.arrayBuffer();
 
-    res.setHeader("Content-Type", "application/epub+zip");
+    res.setHeader('Content-Type', 'application/epub+zip');
     res.setHeader(
-      "Content-Disposition",
+      'Content-Disposition',
       `attachment; filename="${uuid}.epub"`
     );
     res.send(Buffer.from(buffer));
@@ -38,7 +38,7 @@ app.get("/book", async (req, res) => {
   }
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
+const port = process.env.PORT || 80;
+app.listen(port, '0.0.0.0', () => {
   console.log(`Server listening on port ${port}`);
 });
