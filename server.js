@@ -14,7 +14,7 @@ app.get('/book', async (req, res) => {
       `https://api.bookmate.yandex.net/api/v5/books/${uuid}/content/v4`,
       {
         headers: {
-          Authorization: `Token ${process.env.BOOKMATE_TOKEN}`,
+          'auth-token': process.env.BOOKMATE_TOKEN,
         },
       }
     );
