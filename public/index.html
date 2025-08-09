@@ -1,53 +1,378 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Bookmate Downloader</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Bookmate Downloader</title>
+<link rel="icon" href="data:," />
+<style>
+  :root{
+    --bg:#0f1724;
+    --card:#0b1220;
+    --accent1:#6ee7b7;
+    --accent2:#60a5fa;
+    --muted: #9aa4b2;
+    --glass: rgba(255,255,255,0.03);
+    --danger: #ff6b6b;
+    --radius:14px;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  html,body{height:100%;margin:0;background:
+    radial-gradient(1000px 400px at 10% 10%, rgba(96,165,250,0.06), transparent 10%),
+    radial-gradient(800px 300px at 90% 90%, rgba(110,231,183,0.04), transparent 10%),
+    var(--bg);
+    color:#e6eef8;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+  .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px;}
+  .card{
+    width:100%;max-width:920px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:var(--radius);box-shadow: 0 10px 30px rgba(2,6,23,0.6);padding:28px;overflow:hidden;backdrop-filter: blur(6px);
+    border:1px solid rgba(255,255,255,0.03);
+    display:grid;grid-template-columns: 1fr 360px;gap:20px;
+  }
+
+  .logo{display:flex;gap:12px;align-items:center}
+  .logo .mark{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent1),var(--accent2));display:flex;align-items:center;justify-content:center;font-weight:700;color:#04232e}
+  .logo h1{margin:0;font-size:20px;letter-spacing:-0.3px}
+  .logo p{margin:0;font-size:13px;color:var(--muted)}
+
+  .left {padding-right:8px}
+  .input-row{display:flex;gap:10px;margin-top:18px}
+  input[type="text"], input[type="url"]{
+    width:100%;padding:14px 16px;border-radius:10px;background:var(--glass);border:1px solid rgba(255,255,255,0.02);color:inherit;font-size:15px;
+    outline:none;box-shadow:inset 0 -6px 12px rgba(0,0,0,0.2);
+  }
+  .buttons{display:flex;gap:10px;margin-top:12px}
+  button{
+    padding:12px 14px;border-radius:10px;border:0;background:linear-gradient(90deg,var(--accent2),var(--accent1));color:#05232a;font-weight:600;cursor:pointer;
+    box-shadow:0 6px 18px rgba(16,24,40,0.45);font-size:14px;
+  }
+  .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);font-weight:600}
+  .small{padding:8px 10px;font-size:13px;border-radius:8px}
+
+  .result{
+    margin-top:18px;padding:14px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));border:1px solid rgba(255,255,255,0.02);
+  }
+  .result p{margin:0;color:var(--muted);font-size:13px}
+  .uuid{margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .chip{background:rgba(255,255,255,0.03);padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.02);font-weight:600}
+
+  .right{padding-left:8px}
+  .panel{background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);padding:16px;border-radius:10px;border:1px solid rgba(255,255,255,0.02)}
+  .panel h3{margin:0 0 10px 0}
+  .hint{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .examples{display:flex;flex-direction:column;gap:8px}
+  .example{background:rgba(255,255,255,0.02);padding:8px;border-radius:8px;font-size:13px;color:var(--muted);cursor:pointer}
+  .example:hover{background:rgba(255,255,255,0.03);color:#fff}
+  .field{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .field input{width:100%}
+  .history{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+  .history .item{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.02);padding:8px;border-radius:8px}
+  .muted{color:var(--muted);font-size:13px}
+
+  .footer{grid-column:1/-1;margin-top:18px;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;align-items:center}
+  .danger{color:var(--danger);font-weight:700}
+
+  /* responsive */
+  @media (max-width:900px){
+    .card{grid-template-columns:1fr; padding:20px}
+    .right{order:2}
+    .left{order:1}
+  }
+</style>
 </head>
 <body>
-  <h1>Скачать книгу с Bookmate</h1>
-  <input id="uuidInput" type="text" placeholder="Введите UUID книги" style="width: 300px;" />
-  <button id="downloadBtn">Скачать</button>
-  <p id="status"></p>
+  <div class="wrap">
+    <div class="card" role="main" aria-labelledby="title">
+      <div class="left">
+        <div class="logo">
+          <div class="mark">BM</div>
+          <div>
+            <h1 id="title">Bookmate Downloader</h1>
+            <p>Вставь ссылку на книгу или UUID — скачивай EPUB через прокси.</p>
+          </div>
+        </div>
 
-  <script>
-    const downloadBtn = document.getElementById('downloadBtn');
-    const uuidInput = document.getElementById('uuidInput');
-    const status = document.getElementById('status');
+        <div class="input-row" aria-hidden="false">
+          <input id="input" type="url" placeholder="Вставь ссылку на книгу (или просто UUID): https://books.yandex.ru/books/Mbg2FFfX?..." />
+          <button id="parseBtn" class="small">Извлечь</button>
+        </div>
 
-    downloadBtn.addEventListener('click', () => {
-      const uuid = uuidInput.value.trim();
-      if (!uuid) {
-        status.textContent = 'Введите UUID книги';
-        return;
+        <div class="buttons">
+          <button id="downloadBtn">Скачать</button>
+          <button id="copyBtn" class="btn-ghost small">Скопировать UUID</button>
+          <button id="clearBtn" class="btn-ghost small">Очистить</button>
+        </div>
+
+        <div class="result" id="result" aria-live="polite">
+          <p class="muted">Распознанный UUID:</p>
+          <div class="uuid" id="uuidWrap">
+            <div class="chip" id="uuidChip">—</div>
+            <div class="muted" id="statusText">Нажми «Извлечь» или вставь UUID вручную</div>
+          </div>
+          <p class="muted" style="margin-top:10px">Подсказка: поддерживаются форматы ссылок Bookmate / Yandex Books и чистые идентификаторы.</p>
+        </div>
+
+        <div class="footer">
+          <div>Сервер: <span id="backendLabel">/book</span></div>
+          <div class="muted">Последние: <span id="recentCount">0</span></div>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="panel">
+          <h3>Примеры ссылок (клик — вставить)</h3>
+          <div class="examples" id="examples">
+            <div class="example">https://bookmate.ru/books/ZQBImNX2</div>
+            <div class="example">https://books.yandex.ru/books/Mbg2FFfX?username=b5902961247</div>
+            <div class="example">https://api.bookmate.yandex.net/api/v5/books/ZQBImNX2/content/v4</div>
+            <div class="example">ZQBImNX2</div>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="hint">Backend URL</div>
+          <div class="field">
+            <input id="backendInput" type="text" placeholder="Оставь пустым для относительного /book (на том же домене)" />
+            <button id="saveBackend" class="small btn-ghost">Сохранить</button>
+          </div>
+
+          <div style="height:12px"></div>
+
+          <div class="hint">История UUID</div>
+          <div class="history" id="history"></div>
+
+          <div style="height:12px"></div>
+          <div class="muted">Примечание: backend должен отдавать файл по URL <code>/book?uuid=UUID</code> (или по указанному адресу).</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const input = document.getElementById('input');
+  const parseBtn = document.getElementById('parseBtn');
+  const uuidChip = document.getElementById('uuidChip');
+  const statusText = document.getElementById('statusText');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const backendInput = document.getElementById('backendInput');
+  const saveBackend = document.getElementById('saveBackend');
+  const backendLabel = document.getElementById('backendLabel');
+  const examples = document.getElementById('examples');
+  const historyWrap = document.getElementById('history');
+  const recentCount = document.getElementById('recentCount');
+
+  const STORAGE_KEY = 'bm_recent_uuids_v1';
+  const BACKEND_KEY = 'bm_backend_v1';
+  const MAX_HISTORY = 8;
+
+  // load saved backend
+  let backendBase = localStorage.getItem(BACKEND_KEY) || '';
+  backendInput.value = backendBase;
+  backendLabel.textContent = backendBase ? backendBase + '?uuid=' : '/book';
+
+  function saveBackendBase(){
+    backendBase = backendInput.value.trim();
+    if(backendBase && backendBase.endsWith('/')) backendBase = backendBase.slice(0,-1);
+    localStorage.setItem(BACKEND_KEY, backendBase);
+    backendLabel.textContent = backendBase ? backendBase + '?uuid=' : '/book';
+    flashStatus('Backend сохранён');
+  }
+  saveBackend.addEventListener('click', saveBackendBase);
+
+  // Extraction logic
+  function extractUUID(text){
+    if(!text) return null;
+    text = text.trim();
+
+    // If user pasted pure uuid-like token
+    if(/^[A-Za-z0-9_-]{6,}$/i.test(text)) return text;
+
+    // Try parse as URL
+    try {
+      let url = new URL(text);
+      // try query params common names
+      const qsCandidates = ['uuid','id','book','book_uuid','resource'];
+      for(let k of qsCandidates){
+        if(url.searchParams.has(k)){
+          const v = url.searchParams.get(k);
+          if(/^[A-Za-z0-9_-]{6,}$/i.test(v)) return v;
+        }
       }
-      status.textContent = 'Готовлю файл...';
+      // path segments
+      const parts = url.pathname.split('/').filter(Boolean);
+      // find segment 'books' or 'book' then next element
+      for(let i=0;i<parts.length;i++){
+        const p = parts[i].toLowerCase();
+        if((p === 'books' || p === 'book' || p === 'bookshelf') && parts[i+1]){
+          const cand = parts[i+1];
+          if(/^[A-Za-z0-9_-]{6,}$/i.test(cand)) return cand;
+        }
+      }
+      // sometimes uuid is last path segment
+      const last = parts[parts.length-1];
+      if(last && /^[A-Za-z0-9_-]{6,}$/i.test(last)) return last;
+    } catch(e){
+      // not a valid URL — fall through to regex
+    }
 
-      // Создаем ссылку для скачивания
-      const url = `/book?uuid=${encodeURIComponent(uuid)}`;
+    // Generic regex search for patterns like books/{id}
+    const regexes = [
+      /(?:books|book)\/([A-Za-z0-9_-]{6,})/i,
+      /\/api\/v5\/books\/([A-Za-z0-9_-]{6,})/i,
+      /books=([A-Za-z0-9_-]{6,})/i,
+      /([A-Za-z0-9]{6,})/g
+    ];
 
-      fetch(url)
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`Ошибка: ${response.status}`);
-          }
-          return response.blob();
-        })
-        .then(blob => {
-          const downloadUrl = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = downloadUrl;
-          a.download = `${uuid}.epub`;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          window.URL.revokeObjectURL(downloadUrl);
-          status.textContent = 'Скачивание началось';
-        })
-        .catch(err => {
-          status.textContent = 'Ошибка при скачивании: ' + err.message;
-        });
+    for(let re of regexes){
+      let m = re.exec(text);
+      if(m && m[1] && /^[A-Za-z0-9_-]{6,}$/i.test(m[1])) return m[1];
+      // if regex has global capturing fallback
+      if(m && m[0] && /^[A-Za-z0-9_-]{6,}$/i.test(m[0])) return m[0];
+    }
+
+    return null;
+  }
+
+  // UI helpers
+  function flashStatus(msg,dur=1500){
+    statusText.textContent = msg;
+    setTimeout(()=> {
+      statusText.textContent = uuidChip.textContent === '—' ? 'Нажми «Извлечь» или вставь UUID вручную' : '';
+    }, dur);
+  }
+
+  function setUUID(uuid){
+    if(!uuid){
+      uuidChip.textContent = '—';
+      statusText.textContent = 'Не удалось распознать UUID';
+      return;
+    }
+    uuidChip.textContent = uuid;
+    statusText.textContent = 'UUID распознан';
+    pushHistory(uuid);
+  }
+
+  // history
+  function getHistory(){
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]') } catch(e){return []}
+  }
+  function pushHistory(uuid){
+    if(!uuid) return;
+    let arr = getHistory();
+    arr = arr.filter(x => x !== uuid);
+    arr.unshift(uuid);
+    if(arr.length > MAX_HISTORY) arr = arr.slice(0, MAX_HISTORY);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    renderHistory();
+  }
+  function renderHistory(){
+    const arr = getHistory();
+    historyWrap.innerHTML = '';
+    arr.forEach(u => {
+      const item = document.createElement('div');
+      item.className = 'item';
+      item.innerHTML = `<div style="display:flex;gap:8px;align-items:center"><div style="font-weight:700">${u}</div><div class="muted" style="font-size:12px">UUID</div></div>
+        <div style="display:flex;gap:8px"><button class="small btn-ghost" data-uuid="${u}">Вставить</button><button class="small" data-dl="${u}">Скачать</button></div>`;
+      historyWrap.appendChild(item);
     });
-  </script>
+    recentCount.textContent = arr.length;
+  }
+
+  // actions
+  parseBtn.addEventListener('click', ()=> {
+    const value = input.value.trim();
+    const uuid = extractUUID(value);
+    setUUID(uuid);
+    if(!uuid) flashStatus('Не найден UUID',2000);
+  });
+
+  // auto-extract on paste
+  input.addEventListener('paste', (ev)=> {
+    setTimeout(()=> {
+      const val = input.value.trim();
+      const uuid = extractUUID(val);
+      if(uuid) setUUID(uuid);
+    }, 50);
+  });
+
+  downloadBtn.addEventListener('click', ()=> {
+    const uid = uuidChip.textContent && uuidChip.textContent !== '—' ? uuidChip.textContent : null;
+    if(!uid){
+      flashStatus('UUID не указан',2000);
+      return;
+    }
+    // construct URL
+    const base = backendInput.value.trim() || '';
+    let url;
+    if(base){
+      url = base.includes('?') ? (base + '&uuid=' + encodeURIComponent(uid)) : (base + '?uuid=' + encodeURIComponent(uid));
+    } else {
+      // relative path to same origin
+      url = `/book?uuid=${encodeURIComponent(uid)}`;
+    }
+    // navigate to start download
+    window.location.href = url;
+  });
+
+  copyBtn.addEventListener('click', ()=> {
+    const uid = uuidChip.textContent && uuidChip.textContent !== '—' ? uuidChip.textContent : null;
+    if(!uid){ flashStatus('Нет UUID для копирования',1200); return; }
+    navigator.clipboard.writeText(uid).then(()=> flashStatus('UUID скопирован')).catch(()=> flashStatus('Ошибка копирования'));
+  });
+
+  clearBtn.addEventListener('click', ()=> {
+    input.value = '';
+    uuidChip.textContent = '—';
+    statusText.textContent = 'Нажми «Извлечь» или вставь UUID вручную';
+  });
+
+  // examples click
+  examples.addEventListener('click', (e)=> {
+    const el = e.target.closest('.example');
+    if(!el) return;
+    input.value = el.textContent.trim();
+    const uuid = extractUUID(input.value);
+    setUUID(uuid);
+  });
+
+  // history buttons
+  historyWrap.addEventListener('click', (e)=> {
+    const u = e.target.getAttribute('data-uuid');
+    const dl = e.target.getAttribute('data-dl');
+    if(u){
+      input.value = u;
+      setUUID(u);
+    } else if(dl){
+      const base = backendInput.value.trim() || '';
+      const url = base ? (base.includes('?') ? (base + '&uuid=' + encodeURIComponent(dl)) : (base + '?uuid=' + encodeURIComponent(dl))) : `/book?uuid=${encodeURIComponent(dl)}`;
+      window.location.href = url;
+    }
+  });
+
+  // init
+  (function init(){
+    renderHistory();
+    // if there is a value in the input on load (maybe from server)
+    const maybe = input.value.trim();
+    if(maybe){
+      const uuid = extractUUID(maybe);
+      if(uuid) setUUID(uuid);
+    }
+    // update backend label on change
+    backendInput.addEventListener('input', ()=> {
+      let b = backendInput.value.trim();
+      if(b && b.endsWith('/')) b = b.slice(0,-1);
+      backendLabel.textContent = b ? b + '?uuid=' : '/book';
+    });
+  })();
+
+})();
+</script>
 </body>
 </html>
