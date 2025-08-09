@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bookmate Downloader</title>
+</head>
+<body>
+  <h1>Скачать книгу с Bookmate</h1>
+  <input id="uuidInput" type="text" placeholder="Введите UUID книги" style="width: 300px;" />
+  <button id="downloadBtn">Скачать</button>
+  <p id="status"></p>
+
+  <script>
+    const downloadBtn = document.getElementById('downloadBtn');
+    const uuidInput = document.getElementById('uuidInput');
+    const status = document.getElementById('status');
+
+    downloadBtn.addEventListener('click', () => {
+      const uuid = uuidInput.value.trim();
+      if (!uuid) {
+        status.textContent = 'Введите UUID книги';
+        return;
+      }
+      status.textContent = 'Готовлю файл...';
+
+      // Создаем ссылку для скачивания
+      const url = `/book?uuid=${encodeURIComponent(uuid)}`;
+
+      fetch(url)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Ошибка: ${response.status}`);
+          }
+          return response.blob();
+        })
+        .then(blob => {
+          const downloadUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = downloadUrl;
+          a.download = `${uuid}.epub`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(downloadUrl);
+          status.textContent = 'Скачивание началось';
+        })
+        .catch(err => {
+          status.textContent = 'Ошибка при скачивании: ' + err.message;
+        });
+    });
+  </script>
+</body>
+</html>
