@@ -102,7 +102,6 @@
 
         <div class="buttons">
           <button id="downloadBtn">Скачать</button>
-          <button id="copyBtn" class="btn-ghost small">Скопировать UUID</button>
           <button id="clearBtn" class="btn-ghost small">Очистить</button>
         </div>
 
@@ -116,7 +115,7 @@
         </div>
 
         <div class="footer">
-          <div>Сервер: <span id="backendLabel">/book</span></div>
+          <div>Backend: <strong>/book?uuid=UUID</strong></div>
           <div class="muted">Последние: <span id="recentCount">0</span></div>
         </div>
       </div>
@@ -133,19 +132,11 @@
 
           <div style="height:12px"></div>
 
-          <div class="hint">Backend URL</div>
-          <div class="field">
-            <input id="backendInput" type="text" placeholder="Оставь пустым для относительного /book (на том же домене)" />
-            <button id="saveBackend" class="small btn-ghost">Сохранить</button>
-          </div>
-
-          <div style="height:12px"></div>
-
           <div class="hint">История UUID</div>
           <div class="history" id="history"></div>
 
           <div style="height:12px"></div>
-          <div class="muted">Примечание: backend должен отдавать файл по URL <code>/book?uuid=UUID</code> (или по указанному адресу).</div>
+          <div class="muted">Примечание: backend должен отдавать файл по URL <code>/book?uuid=UUID</code> (на том же домене).</div>
         </div>
       </div>
     </div>
@@ -158,45 +149,23 @@
   const uuidChip = document.getElementById('uuidChip');
   const statusText = document.getElementById('statusText');
   const downloadBtn = document.getElementById('downloadBtn');
-  const copyBtn = document.getElementById('copyBtn');
   const clearBtn = document.getElementById('clearBtn');
-  const backendInput = document.getElementById('backendInput');
-  const saveBackend = document.getElementById('saveBackend');
-  const backendLabel = document.getElementById('backendLabel');
   const examples = document.getElementById('examples');
   const historyWrap = document.getElementById('history');
   const recentCount = document.getElementById('recentCount');
 
   const STORAGE_KEY = 'bm_recent_uuids_v1';
-  const BACKEND_KEY = 'bm_backend_v1';
   const MAX_HISTORY = 8;
 
-  // load saved backend
-  let backendBase = localStorage.getItem(BACKEND_KEY) || '';
-  backendInput.value = backendBase;
-  backendLabel.textContent = backendBase ? backendBase + '?uuid=' : '/book';
-
-  function saveBackendBase(){
-    backendBase = backendInput.value.trim();
-    if(backendBase && backendBase.endsWith('/')) backendBase = backendBase.slice(0,-1);
-    localStorage.setItem(BACKEND_KEY, backendBase);
-    backendLabel.textContent = backendBase ? backendBase + '?uuid=' : '/book';
-    flashStatus('Backend сохранён');
-  }
-  saveBackend.addEventListener('click', saveBackendBase);
-
-  // Extraction logic
+  // Extraction logic (как прежде)
   function extractUUID(text){
     if(!text) return null;
     text = text.trim();
 
-    // If user pasted pure uuid-like token
     if(/^[A-Za-z0-9_-]{6,}$/i.test(text)) return text;
 
-    // Try parse as URL
     try {
       let url = new URL(text);
-      // try query params common names
       const qsCandidates = ['uuid','id','book','book_uuid','resource'];
       for(let k of qsCandidates){
         if(url.searchParams.has(k)){
@@ -204,9 +173,7 @@
           if(/^[A-Za-z0-9_-]{6,}$/i.test(v)) return v;
         }
       }
-      // path segments
       const parts = url.pathname.split('/').filter(Boolean);
-      // find segment 'books' or 'book' then next element
       for(let i=0;i<parts.length;i++){
         const p = parts[i].toLowerCase();
         if((p === 'books' || p === 'book' || p === 'bookshelf') && parts[i+1]){
@@ -214,14 +181,10 @@
           if(/^[A-Za-z0-9_-]{6,}$/i.test(cand)) return cand;
         }
       }
-      // sometimes uuid is last path segment
       const last = parts[parts.length-1];
       if(last && /^[A-Za-z0-9_-]{6,}$/i.test(last)) return last;
-    } catch(e){
-      // not a valid URL — fall through to regex
-    }
+    } catch(e){}
 
-    // Generic regex search for patterns like books/{id}
     const regexes = [
       /(?:books|book)\/([A-Za-z0-9_-]{6,})/i,
       /\/api\/v5\/books\/([A-Za-z0-9_-]{6,})/i,
@@ -232,14 +195,12 @@
     for(let re of regexes){
       let m = re.exec(text);
       if(m && m[1] && /^[A-Za-z0-9_-]{6,}$/i.test(m[1])) return m[1];
-      // if regex has global capturing fallback
       if(m && m[0] && /^[A-Za-z0-9_-]{6,}$/i.test(m[0])) return m[0];
     }
 
     return null;
   }
 
-  // UI helpers
   function flashStatus(msg,dur=1500){
     statusText.textContent = msg;
     setTimeout(()=> {
@@ -284,7 +245,6 @@
     recentCount.textContent = arr.length;
   }
 
-  // actions
   parseBtn.addEventListener('click', ()=> {
     const value = input.value.trim();
     const uuid = extractUUID(value);
@@ -301,29 +261,61 @@
     }, 50);
   });
 
-  downloadBtn.addEventListener('click', ()=> {
+  // Download: fetch blob, copy UUID, create download link
+  downloadBtn.addEventListener('click', async ()=> {
     const uid = uuidChip.textContent && uuidChip.textContent !== '—' ? uuidChip.textContent : null;
     if(!uid){
       flashStatus('UUID не указан',2000);
       return;
     }
-    // construct URL
-    const base = backendInput.value.trim() || '';
-    let url;
-    if(base){
-      url = base.includes('?') ? (base + '&uuid=' + encodeURIComponent(uid)) : (base + '?uuid=' + encodeURIComponent(uid));
-    } else {
-      // relative path to same origin
-      url = `/book?uuid=${encodeURIComponent(uid)}`;
-    }
-    // navigate to start download
-    window.location.href = url;
-  });
 
-  copyBtn.addEventListener('click', ()=> {
-    const uid = uuidChip.textContent && uuidChip.textContent !== '—' ? uuidChip.textContent : null;
-    if(!uid){ flashStatus('Нет UUID для копирования',1200); return; }
-    navigator.clipboard.writeText(uid).then(()=> flashStatus('UUID скопирован')).catch(()=> flashStatus('Ошибка копирования'));
+    // copy UUID to clipboard
+    try {
+      await navigator.clipboard.writeText(uid);
+      flashStatus('UUID скопирован в буфер', 900);
+    } catch(e){
+      // ignore if can't copy
+    }
+
+    const url = `/book?uuid=${encodeURIComponent(uid)}`;
+    downloadBtn.disabled = true;
+    downloadBtn.textContent = 'Скачивание...';
+    statusText.textContent = 'Идёт скачивание, не закрывайте страницу';
+
+    try {
+      const resp = await fetch(url);
+      if(!resp.ok){
+        const txt = await resp.text().catch(()=> '');
+        flashStatus(`Ошибка сервера: ${resp.status}`, 3000);
+        console.error('Server response:', resp.status, txt);
+        return;
+      }
+      const blob = await resp.blob();
+      // try to determine filename from headers
+      let filename = `${uid}.epub`;
+      const cd = resp.headers.get('content-disposition');
+      if(cd){
+        const m = /filename\*?=([^;]+)/i.exec(cd);
+        if(m && m[1]) filename = m[1].replace(/['"]/g,'').trim();
+      }
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+      flashStatus('Скачивание началось', 1500);
+    } catch(err){
+      console.error('Download error:', err);
+      flashStatus('Ошибка при скачивании', 3000);
+    } finally {
+      downloadBtn.disabled = false;
+      downloadBtn.textContent = 'Скачать';
+      statusText.textContent = '';
+    }
   });
 
   clearBtn.addEventListener('click', ()=> {
@@ -341,7 +333,7 @@
     setUUID(uuid);
   });
 
-  // history buttons
+  // history buttons (insert / download)
   historyWrap.addEventListener('click', (e)=> {
     const u = e.target.getAttribute('data-uuid');
     const dl = e.target.getAttribute('data-dl');
@@ -349,27 +341,21 @@
       input.value = u;
       setUUID(u);
     } else if(dl){
-      const base = backendInput.value.trim() || '';
-      const url = base ? (base.includes('?') ? (base + '&uuid=' + encodeURIComponent(dl)) : (base + '?uuid=' + encodeURIComponent(dl))) : `/book?uuid=${encodeURIComponent(dl)}`;
-      window.location.href = url;
+      // trigger download flow for this uuid
+      input.value = dl;
+      setUUID(dl);
+      downloadBtn.click();
     }
   });
 
   // init
   (function init(){
     renderHistory();
-    // if there is a value in the input on load (maybe from server)
     const maybe = input.value.trim();
     if(maybe){
       const uuid = extractUUID(maybe);
       if(uuid) setUUID(uuid);
     }
-    // update backend label on change
-    backendInput.addEventListener('input', ()=> {
-      let b = backendInput.value.trim();
-      if(b && b.endsWith('/')) b = b.slice(0,-1);
-      backendLabel.textContent = b ? b + '?uuid=' : '/book';
-    });
   })();
 
 })();
